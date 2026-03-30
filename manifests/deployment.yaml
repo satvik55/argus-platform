@@ -1,0 +1,55 @@
+# Runs the argus-api container with health probes and resource limits.
+# Resource limits are tuned for t3.small (2GB total RAM).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argus-api
+  namespace: argus
+  labels:
+    app.kubernetes.io/name: argus-api
+    app.kubernetes.io/part-of: argus-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argus-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: argus-api
+        app.kubernetes.io/part-of: argus-platform
+    spec:
+      containers:
+        - name: argus-api
+          image: satvik55/argus-api:latest
+          ports:
+            - containerPort: 5000
+              name: http
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: argus-api-config
+          # Liveness probe — restarts the pod if it fails 3 times
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          # Readiness probe — removes pod from Service if it fails
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 3
+            failureThreshold: 3
+          # Resource limits tuned for t3.small
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi

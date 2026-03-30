@@ -1,0 +1,15 @@
+# Externalizes config from the container image.
+# Change these values without rebuilding the Docker image.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argus-api-config
+  namespace: argus
+  labels:
+    app.kubernetes.io/name: argus-api
+    app.kubernetes.io/part-of: argus-platform
+data:
+  APP_VERSION: "1.0.0"
+  FLASK_HOST: "0.0.0.0"
+  FLASK_PORT: "5000"
+  FLASK_DEBUG: "false"

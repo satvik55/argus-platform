@@ -1,0 +1,21 @@
+# NodePort service exposes argus-api on port 30080 on the EC2 instance.
+# Access via: http://13.206.30.240:30080
+# We use NodePort instead of LoadBalancer because there's no cloud LB on k3s.
+apiVersion: v1
+kind: Service
+metadata:
+  name: argus-api
+  namespace: argus
+  labels:
+    app.kubernetes.io/name: argus-api
+    app.kubernetes.io/part-of: argus-platform
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: argus-api
+  ports:
+    - port: 80
+      targetPort: http
+      nodePort: 30080
+      protocol: TCP
+      name: http

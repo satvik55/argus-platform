@@ -1,0 +1,7 @@
+# Declarative namespace definition — idempotent (safe to apply multiple times)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argus
+  labels:
+    app.kubernetes.io/part-of: argus-platform
