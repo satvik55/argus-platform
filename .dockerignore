@@ -1,0 +1,32 @@
+# Version control
+.git
+.github
+
+# Python artifacts
+__pycache__
+*.py[cod]
+.pytest_cache
+.coverage
+htmlcov
+.venv
+venv
+
+# Project files not needed in production image
+docs/
+tests/
+charts/
+manifests/
+argocd/
+detector/
+scripts/
+dashboards/
+
+# Documentation
+*.md
+LICENSE
+
+# Config
+.gitignore
+docker-compose*.yml
+.env*
+*.pem

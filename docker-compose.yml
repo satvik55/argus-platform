@@ -1,0 +1,17 @@
+# Local development stack.
+# Run: docker compose up --build
+# Test: curl http://localhost:5000/health
+
+services:
+  argus-api:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - APP_VERSION=local-dev
+      - FLASK_DEBUG=false
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
