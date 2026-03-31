@@ -1,0 +1,15 @@
+🚀 Argus API has been deployed!
+
+Access the application:
+  http://13.206.30.240:{{ .Values.service.nodePort }}
+
+Useful commands:
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "argus-api.name" . }}
+  kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "argus-api.name" . }}
+
+Endpoints:
+  GET  /health      → Health check
+  GET  /metrics     → Prometheus metrics
+  GET  /api/items   → List items
+  POST /api/items   → Create item
+  POST /api/stress  → CPU stress test

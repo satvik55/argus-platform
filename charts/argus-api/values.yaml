@@ -1,0 +1,69 @@
+# ============================================================================
+# Argus API — Helm Values
+# All configurable parameters for the argus-api deployment.
+# Override any value with: helm install --set key=value
+# or provide a custom values file: helm install -f custom-values.yaml
+# ============================================================================
+
+# -- Image configuration -----------------------------------------------------
+image:
+  repository: satvik55/argus-api
+  tag: "latest"
+  pullPolicy: Always
+
+# -- Replica configuration ---------------------------------------------------
+# Starts at 1; HPA (Day 10) will scale this between 1-5 based on CPU.
+replicaCount: 1
+
+# -- Service configuration ---------------------------------------------------
+service:
+  type: NodePort
+  port: 80
+  targetPort: 5000
+  nodePort: 30080
+
+# -- Resource limits (tuned for t3.small — 2GB total RAM) --------------------
+# requests = guaranteed allocation (scheduler uses this to place pods)
+# limits   = hard cap (pod gets OOM-killed if it exceeds this)
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+# -- Health probes -----------------------------------------------------------
+# Liveness: restarts pod if unhealthy (catches deadlocks, hangs)
+# Readiness: removes pod from Service if unhealthy (no traffic during startup)
+livenessProbe:
+  path: /health
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  path: /health
+  initialDelaySeconds: 5
+  periodSeconds: 3
+  failureThreshold: 3
+
+# -- Application config (injected as env vars via ConfigMap) -----------------
+config:
+  APP_VERSION: "1.0.0"
+  FLASK_HOST: "0.0.0.0"
+  FLASK_PORT: "5000"
+  FLASK_DEBUG: "false"
+
+# -- HPA configuration (enabled on Day 10) -----------------------------------
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 50
+
+# -- ServiceMonitor for Prometheus scraping (enabled on Day 6) ---------------
+serviceMonitor:
+  enabled: false
+  interval: 15s
+  path: /metrics
