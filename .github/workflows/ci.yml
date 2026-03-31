@@ -1,0 +1,103 @@
+# =============================================================================
+# Argus API — CI Pipeline
+#
+# Triggered on every push to main.
+# 1. Runs pytest to catch regressions
+# 2. Builds Docker image for linux/amd64 (EC2 target)
+# 3. Tags with git SHA (immutable, traceable)
+# 4. Pushes to DockerHub
+# 5. Updates image.tag in Helm values.yaml and commits back to repo
+#
+# The commit-back step uses [skip ci] to prevent infinite trigger loops.
+# =============================================================================
+
+name: Argus CI Pipeline
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - 'dashboards/**'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: Run tests
+  # ---------------------------------------------------------------------------
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run pytest
+        run: pytest tests/ -v --tb=short
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Build Docker image and push to DockerHub
+  # ---------------------------------------------------------------------------
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: |
+            satvik55/argus-api:${{ github.sha }}
+            satvik55/argus-api:latest
+
+  # ---------------------------------------------------------------------------
+  # Job 3: Update Helm values.yaml with new image tag
+  # This is the GitOps glue — ArgoCD watches this file for changes.
+  # ---------------------------------------------------------------------------
+  update-helm-tag:
+    name: Update Helm Image Tag
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Update image tag in values.yaml
+        run: |
+          cd charts/argus-api
+          sed -i "s|tag:.*|tag: \"${{ github.sha }}\"|" values.yaml
+          cat values.yaml | grep "tag:"
+
+      - name: Commit and push updated tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add charts/argus-api/values.yaml
+          git diff --staged --quiet && echo "No changes to commit" && exit 0
+          git commit -m "ci: update argus-api image tag to ${GITHUB_SHA::7} [skip ci]"
+          git push

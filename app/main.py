@@ -144,5 +144,21 @@ def stress():
 # ---------------------------------------------------------------------------
 # Direct execution — only for local dev.  In production, gunicorn runs this.
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Platform info — added via CI pipeline (Day 4)
+# ---------------------------------------------------------------------------
+@app.route("/api/info")
+def info():
+    return jsonify({
+        "platform": "Argus Observability Platform",
+        "components": [
+            "Flask API with Prometheus metrics",
+            "k3s Kubernetes cluster",
+            "Helm-managed deployment",
+            "GitHub Actions CI pipeline",
+        ],
+        "version": VERSION,
+    })
+    
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

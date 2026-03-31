@@ -126,3 +126,16 @@ class TestStress:
         resp = client.post("/api/stress")
         data = resp.get_json()
         assert data["duration_seconds"] == 5
+# -- Info endpoint -----------------------------------------------------------
+class TestInfo:
+    def test_returns_200(self, client):
+        resp = client.get("/api/info")
+        assert resp.status_code == 200
+
+    def test_contains_platform_name(self, client):
+        data = client.get("/api/info").get_json()
+        assert data["platform"] == "Argus Observability Platform"
+
+    def test_contains_components(self, client):
+        data = client.get("/api/info").get_json()
+        assert len(data["components"]) >= 4
