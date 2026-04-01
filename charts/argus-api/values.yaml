@@ -8,7 +8,7 @@
 # -- Image configuration -----------------------------------------------------
 image:
   repository: satvik55/argus-api
-  tag: "26b00b6ab70a29d87f6bcaa04a37260c0b7ba053"
+  tag: "32a9781471ce065c6fe91bf7d968a737fdb6b8ec"
   pullPolicy: Always
 
 # -- Replica configuration ---------------------------------------------------
