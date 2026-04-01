@@ -84,8 +84,11 @@ def _record_metrics(response):
 # ---------------------------------------------------------------------------
 @app.route("/health")
 def health():
-    return jsonify({"status": "healthy", "version": VERSION})
-
+    return jsonify({
+        "status": "healthy",
+        "version": VERSION,
+        "managed_by": "argocd"
+    })
 
 # ---------------------------------------------------------------------------
 # Prometheus metrics endpoint — scraped by Prometheus every 15 s

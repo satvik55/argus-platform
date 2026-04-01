@@ -32,9 +32,13 @@ class TestHealth:
     def test_returns_200(self, client):
         resp = client.get("/health")
         assert resp.status_code == 200
+    
+    def test_includes_managed_by(self, client):
+        data = client.get("/health").get_json()
+        assert "managed_by" in data
 
     def test_status_healthy(self, client):
-        data = resp = client.get("/health").get_json()
+        data = client.get("/health").get_json()
         assert data["status"] == "healthy"
 
     def test_includes_version(self, client):
