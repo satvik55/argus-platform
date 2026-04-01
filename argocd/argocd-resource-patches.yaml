@@ -1,0 +1,116 @@
+# =============================================================================
+# ArgoCD Resource Patches for t3.small (2GB RAM)
+#
+# Default ArgoCD wants ~768MB+ across its 3 main components.
+# These patches cut that to ~384MB total while keeping things functional.
+#
+# Apply AFTER installing ArgoCD:
+#   kubectl apply -f argocd/argocd-resource-patches.yaml
+# =============================================================================
+
+# --- Server (the UI + API) ---------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-server
+  namespace: argocd
+spec:
+  template:
+    spec:
+      containers:
+        - name: argocd-server
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 250m
+              memory: 192Mi
+          env:
+            # Reduce Go GC pressure on low-memory environments
+            - name: GOGC
+              value: "50"
+---
+# --- Repo Server (clones git repos, renders Helm charts) --------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-repo-server
+  namespace: argocd
+spec:
+  template:
+    spec:
+      containers:
+        - name: argocd-repo-server
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 250m
+              memory: 192Mi
+          env:
+            - name: GOGC
+              value: "50"
+---
+# --- Application Controller (watches cluster + git, triggers syncs) ----------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-application-controller
+  namespace: argocd
+spec:
+  template:
+    spec:
+      containers:
+        - name: argocd-application-controller
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 250m
+              memory: 192Mi
+          env:
+            - name: GOGC
+              value: "50"
+            # Reduce reconciliation frequency to save CPU
+            - name: ARGOCD_RECONCILIATION_TIMEOUT
+              value: "180s"
+---
+# --- Redis (cache layer) ----------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-redis
+  namespace: argocd
+spec:
+  template:
+    spec:
+      containers:
+        - name: redis
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+---
+# --- Notifications Controller (disable — not needed for this project) --------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-notifications-controller
+  namespace: argocd
+spec:
+  replicas: 0
+---
+# --- ApplicationSet Controller (disable — not needed) ------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-applicationset-controller
+  namespace: argocd
+spec:
+  replicas: 0

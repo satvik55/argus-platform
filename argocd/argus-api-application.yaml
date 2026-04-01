@@ -1,0 +1,40 @@
+# =============================================================================
+# ArgoCD Application — Argus API
+#
+# This tells ArgoCD: "watch the charts/argus-api/ path in the GitHub repo,
+# and auto-deploy any changes to the argus namespace in this cluster."
+#
+# Key settings:
+#   automated sync  → deploys on every git change (no manual approval)
+#   selfHeal        → reverts manual kubectl changes back to git state
+#   prune           → deletes resources removed from git
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argus-api
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/satvik55/argus-platform.git
+    targetRevision: main
+    path: charts/argus-api
+    helm:
+      valueFiles:
+        - values.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argus
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
