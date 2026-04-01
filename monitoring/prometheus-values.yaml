@@ -1,0 +1,138 @@
+# =============================================================================
+# kube-prometheus-stack — Custom Values for m7i-flex.large (8GB RAM)
+#
+# With 8GB we have plenty of headroom. Resource limits are still set
+# (best practice) but much more generous than the t3.small config.
+#
+# Install with:
+#   helm install prometheus prometheus-community/kube-prometheus-stack \
+#     -n monitoring --create-namespace -f monitoring/prometheus-values.yaml
+# =============================================================================
+
+# -- Global settings ----------------------------------------------------------
+fullnameOverride: prometheus
+
+# -- Prometheus ---------------------------------------------------------------
+prometheus:
+  prometheusSpec:
+    # 12h retention — enough for demos and testing
+    retention: 12h
+    retentionSize: "2GB"
+
+    # Standard 15s scrape interval (we can afford it with 8GB)
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+
+    # Resource limits — comfortable for 8GB node
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+
+    # Storage — emptyDir (no PV needed, data lost on pod restart, acceptable for demo)
+    storageSpec: {}
+
+    # CRITICAL: Allow Prometheus to scrape ServiceMonitors in ALL namespaces
+    # Without this, it only scrapes the monitoring namespace
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector: {}
+    serviceMonitorSelector: {}
+
+    # Same for PodMonitors and PrometheusRules
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+# -- Grafana ------------------------------------------------------------------
+grafana:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 384Mi
+
+  # Default admin credentials (change in production)
+  adminUser: admin
+  adminPassword: argus-grafana-2024
+
+  # Persistence disabled — dashboard JSON is in Git, no need to persist
+  persistence:
+    enabled: false
+
+  # Sidecar — auto-loads dashboards and datasources from ConfigMaps
+  sidecar:
+    dashboards:
+      enabled: true
+      searchNamespace: ALL
+    datasources:
+      enabled: true
+
+# -- AlertManager -------------------------------------------------------------
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+    replicas: 1
+    retention: 24h
+    storage: {}
+
+# -- Prometheus Operator (manages Prometheus/AlertManager CRDs) ---------------
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+  # Admission webhooks — keep disabled to avoid cert issues on k3s
+  admissionWebhooks:
+    enabled: false
+    patch:
+      enabled: false
+
+# -- kube-state-metrics -------------------------------------------------------
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# -- Node Exporter ------------------------------------------------------------
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 48Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# -- Disable components that don't work on k3s --------------------------------
+# k3s bundles etcd, scheduler, and controller-manager into a single binary.
+# These exporters expect separate endpoints that don't exist on k3s.
+kubeEtcd:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+# ThanosRuler — not needed for this project
+thanosRuler:
+  enabled: false
