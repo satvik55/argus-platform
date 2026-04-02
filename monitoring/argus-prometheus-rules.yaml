@@ -1,0 +1,93 @@
+# =============================================================================
+# Argus API — Prometheus Alerting Rules
+#
+# These rules evaluate every 15s (Prometheus evaluationInterval).
+# When a condition is true for the specified `for` duration, the alert fires.
+#
+# Alerts show up in:
+#   1. Prometheus UI → Alerts tab
+#   2. Grafana dashboard annotations (red markers)
+#   3. AlertManager (could route to Slack/PagerDuty in production)
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: argus-api-alerts
+  namespace: argus
+  labels:
+    app.kubernetes.io/name: argus-api
+    app.kubernetes.io/part-of: argus-platform
+    # Must match Prometheus ruleSelector — using nil selector so any label works
+    release: prometheus
+spec:
+  groups:
+    - name: argus-api.rules
+      rules:
+        # -- High CPU: pod using >80% of its CPU limit for 5 min ----------------
+        # Why 5 min: avoids alerting on brief spikes during normal request bursts.
+        # In production, this would trigger a page to the on-call engineer.
+        - alert: ArgusHighCPU
+          expr: |
+            rate(container_cpu_usage_seconds_total{
+              namespace="argus",
+              container="argus-api"
+            }[5m]) * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "Argus API pod {{ $labels.pod }} CPU > 80%"
+            description: "Pod {{ $labels.pod }} has been using more than 80% CPU for 5 minutes. Current value: {{ $value | printf \"%.1f\" }}%. Consider checking if HPA is scaling."
+            runbook: "Check HPA status: kubectl get hpa -n argus"
+
+        # -- High Restarts: >3 restarts in 10 min --------------------------------
+        # Why: frequent restarts indicate OOM kills, crash loops, or bad deploys.
+        - alert: ArgusHighRestarts
+          expr: |
+            increase(kube_pod_container_status_restarts_total{
+              namespace="argus"
+            }[10m]) > 3
+          for: 1m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Argus pod {{ $labels.pod }} has restarted {{ $value | printf \"%.0f\" }} times in 10 min"
+            description: "Frequent restarts suggest OOM kills or application crashes. Check pod logs and events."
+            runbook: "kubectl describe pod {{ $labels.pod }} -n argus && kubectl logs {{ $labels.pod }} -n argus --previous"
+
+        # -- High Error Rate: 5xx responses > 5% for 3 min ----------------------
+        # Why 5%: some errors are normal (bad requests), but >5% means systemic issue.
+        - alert: ArgusHighErrorRate
+          expr: |
+            (
+              sum(rate(request_count_total{namespace="argus", status=~"5.."}[5m]))
+              /
+              sum(rate(request_count_total{namespace="argus"}[5m]))
+            ) * 100 > 5
+          for: 3m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Argus API 5xx error rate > 5%"
+            description: "Error rate is {{ $value | printf \"%.1f\" }}%. This suggests an application-level issue, not just load."
+            runbook: "Check app logs: kubectl logs -n argus -l app.kubernetes.io/name=argus-api --tail=50"
+
+        # -- High Latency: p99 > 2 seconds for 5 min ----------------------------
+        # Why p99: catches the worst-case user experience. p50 being fast doesn't
+        # mean everyone is happy.
+        - alert: ArgusHighLatency
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(request_latency_seconds_bucket{namespace="argus"}[5m])) by (le)
+            ) > 2
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "Argus API p99 latency > 2 seconds"
+            description: "99th percentile latency is {{ $value | printf \"%.2f\" }}s. This could indicate resource contention or a slow downstream dependency."
+            runbook: "Check CPU/memory: kubectl top pods -n argus && check HPA: kubectl get hpa -n argus"
