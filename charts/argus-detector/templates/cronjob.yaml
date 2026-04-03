@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "argus-detector.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "argus-detector.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.schedule | quote }}
+  concurrencyPolicy: {{ .Values.concurrencyPolicy }}
+  failedJobsHistoryLimit: {{ .Values.failedJobsHistoryLimit }}
+  successfulJobsHistoryLimit: {{ .Values.successfulJobsHistoryLimit }}
+  jobTemplate:
+    metadata:
+      labels:
+        {{- include "argus-detector.selectorLabels" . | nindent 8 }}
+        app: argus-detector
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "argus-detector.selectorLabels" . | nindent 12 }}
+            app: argus-detector
+        spec:
+          serviceAccountName: {{ include "argus-detector.fullname" . }}
+          restartPolicy: OnFailure
+          containers:
+            - name: detector
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              envFrom:
+                - configMapRef:
+                    name: {{ include "argus-detector.fullname" . }}-config
+              {{- if .Values.grafanaApiKey }}
+              env:
+                - name: GRAFANA_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "argus-detector.fullname" . }}-grafana
+                      key: GRAFANA_API_KEY
+              {{- end }}
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}

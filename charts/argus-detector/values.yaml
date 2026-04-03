@@ -1,0 +1,43 @@
+# ============================================================================
+# Argus Detector — Helm Values
+# CronJob that runs Z-score anomaly detection every 2 minutes.
+# ============================================================================
+
+# -- Image configuration -----------------------------------------------------
+image:
+  repository: satvik55/argus-detector
+  tag: "latest"
+  pullPolicy: Always
+
+# -- CronJob schedule --------------------------------------------------------
+# Every 2 minutes. Cron syntax: minute hour day month weekday
+schedule: "*/2 * * * *"
+
+# CronJob policies
+concurrencyPolicy: Forbid
+failedJobsHistoryLimit: 3
+successfulJobsHistoryLimit: 3
+
+# -- Resource limits ---------------------------------------------------------
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+# -- Detector configuration (injected as env vars via ConfigMap) -------------
+config:
+  PROMETHEUS_URL: "http://prometheus-prometheus.monitoring.svc.cluster.local:9090"
+  GRAFANA_URL: "http://prometheus-grafana.monitoring.svc.cluster.local:80"
+  QUERY_RANGE_MINUTES: "30"
+  ZSCORE_WINDOW: "10"
+  ZSCORE_THRESHOLD: "2.5"
+  QUERY_STEP: "30s"
+  NAMESPACE: "argus"
+  DASHBOARD_UID: "argus-app-health"
+
+# -- Grafana API key (stored as K8s Secret) ----------------------------------
+# Set this after creating the API key in Grafana
+grafanaApiKey: ""

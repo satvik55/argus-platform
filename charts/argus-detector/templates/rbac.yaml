@@ -1,0 +1,33 @@
+# ClusterRole: allows creating Events in any namespace.
+# We use ClusterRole (not Role) so the detector could potentially
+# monitor multiple namespaces in the future.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "argus-detector.fullname" . }}
+  labels:
+    {{- include "argus-detector.labels" . | nindent 4 }}
+rules:
+  # Create Events (anomaly notifications visible in kubectl get events)
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  # Read pods (for correlating pod state with metrics)
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "argus-detector.fullname" . }}
+  labels:
+    {{- include "argus-detector.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "argus-detector.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "argus-detector.fullname" . }}
+    namespace: {{ .Release.Namespace }}

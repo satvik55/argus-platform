@@ -1,0 +1,15 @@
+apiVersion: v2
+name: argus-detector
+description: Helm chart for Argus Anomaly Detector — Z-score based AIOps CronJob
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Satvik Bodke
+    url: https://github.com/satvik55
+keywords:
+  - anomaly-detection
+  - aiops
+  - prometheus
+  - z-score
+  - cronjob

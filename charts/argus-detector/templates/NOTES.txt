@@ -1,0 +1,16 @@
+🧠 Argus Anomaly Detector deployed!
+
+Schedule: {{ .Values.schedule }} (every 2 minutes)
+Namespace: {{ .Release.Namespace }}
+Prometheus: {{ .Values.config.PROMETHEUS_URL }}
+Z-score threshold: {{ .Values.config.ZSCORE_THRESHOLD }}
+
+Useful commands:
+  # Watch CronJob runs:
+  kubectl get cronjob -n {{ .Release.Namespace }}
+
+  # See recent detector pod logs:
+  kubectl logs -n {{ .Release.Namespace }} -l app=argus-detector --tail=50
+
+  # Check for anomaly events:
+  kubectl get events -n argus --field-selector reason=AnomalyDetected
