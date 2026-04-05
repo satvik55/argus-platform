@@ -28,3 +28,4 @@ pytest tests/ -v
 | Monitoring | Prometheus + Grafana |
 | AI / AIOps | Z-score anomaly detection |
 | Auto-scaling | HPA + metrics-server |
+
