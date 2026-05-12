@@ -103,6 +103,10 @@ def metrics():
 # ---------------------------------------------------------------------------
 @app.route("/api/items", methods=["GET"])
 def get_items():
+    # CHAOS TEST: simulate a bad deploy that causes 500 errors
+    import random
+    if random.random() < 0.5:  # 50% of requests fail
+        return jsonify({"error": "internal server error", "chaos": True}), 500
     return jsonify({"items": ITEMS, "count": len(ITEMS)})
 
 
