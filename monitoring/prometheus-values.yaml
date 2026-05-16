@@ -95,11 +95,17 @@ prometheusOperator:
       cpu: 300m
       memory: 256Mi
 
-  # Admission webhooks — keep disabled to avoid cert issues on k3s
+  # Disable admission webhooks entirely — avoids TLS cert bootstrap failures on k3s
   admissionWebhooks:
     enabled: false
     patch:
       enabled: false
+
+  # CRITICAL FIX: disable TLS on the operator's own web server
+  # Without this, operator starts with --web.enable-tls=true and crashes
+  # looking for /cert/cert which was never generated
+  tls:
+    enabled: false
 
 # -- kube-state-metrics -------------------------------------------------------
 kube-state-metrics:
@@ -126,10 +132,13 @@ prometheus-node-exporter:
 # These exporters expect separate endpoints that don't exist on k3s.
 kubeEtcd:
   enabled: false
+
 kubeScheduler:
   enabled: false
+
 kubeControllerManager:
   enabled: false
+
 kubeProxy:
   enabled: false
 
