@@ -232,8 +232,7 @@ kubectl apply -f monitoring/argus-prometheus-rules.yaml
 # (see docs for curl commands)
 ```
 
-Full platform deployment from zero: **~30 minutes**
-
+Full platform deployment from zero: **~39 minutes** (tested on Day 14 — full destroy and rebuild)
 ---
 
 ## What I'd Add With More Time
